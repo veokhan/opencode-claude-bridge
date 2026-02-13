@@ -1,62 +1,80 @@
 # OpenCode Claude Bridge
 
-**✅ WORKING** - Use OpenCode's AI models directly in Claude Code with a beautiful Web Dashboard!
+**✅ Use OpenCode AI models directly in Claude Code with one command!**
+
+## Quick Install (Recommended)
+
+```bash
+# Install globally
+npm install -g opencode-claude-bridge
+
+# OR use npx (no install needed)
+npx opencode-claude-bridge install
+```
+
+That's it! The `install` command will:
+1. Check OpenCode is installed
+2. Configure Claude Code automatically
+3. Start all services
+
+## Usage
+
+```bash
+# Start everything (after install)
+opencode-bridge start
+
+# Or use npx
+npx opencode-bridge start
+```
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `opencode-bridge install` | Setup + Start (all in one) |
+| `opencode-bridge start` | Start all services |
+| `opencode-bridge stop` | Stop all services |
+| `opencode-bridge setup` | Configure Claude Code only |
+| `opencode-bridge remove` | Remove configuration |
+
+## After Installation
+
+1. **Dashboard:** http://localhost:8100
+   - Switch models with one click
+   - View usage stats
+   - Reset session/stats
+
+2. **Use Claude Code:**
+   ```bash
+   claude --print
+   ```
 
 ## Features
 
-- 🌐 **Beautiful Web Dashboard** - Monitor usage, switch models, track stats
-- 🔄 **Model Switching** - Switch between 10+ models with one click
-- 📊 **Usage Tracking** - Track requests and token usage
-- 🔌 **Seamless Integration** - Claude Code thinks it's talking to Anthropic
+- 🌐 **Beautiful Web Dashboard** - Monitor usage, switch models
+- 🔄 **One-Click Model Switching** - 10+ models available
+- 📊 **Usage Tracking** - Requests and tokens
+- ⚡ **Auto-Configuration** - No manual editing needed
 
-## Quick Start
+## Manual Installation
 
-### 1. Start OpenCode Server
-
-```bash
-opencode serve --port 4096
-```
-
-### 2. Start the Bridge
+If you prefer to install from source:
 
 ```bash
-cd anthropic-proxy
+# Clone
+git clone https://github.com/veokhan/opencode-claude-bridge.git
+cd opencode-claude-bridge/anthropic-proxy
+
+# Install & Build
 npm install
 npm run build
-node dist/proxy.js
+
+# Configure Claude Code (one command!)
+node dist/cli.js setup
+
+# Start
+node dist/cli.js start
 ```
-
-### 3. Open the Dashboard
-
-Visit: **http://localhost:8100**
-
-### 4. Configure Claude Code
-
-Add to `~/.claude/settings.json`:
-
-```json
-{
-  "env": {
-    "ANTHROPIC_BASE_URL": "http://localhost:8100",
-    "ANTHROPIC_API_KEY": "test-key"
-  }
-}
-```
-
-### 5. Use Claude Code!
-
-```bash
-claude --print
-```
-
-## Web Dashboard Features
-
-- **Current Model** - See which model is active
-- **Total Requests** - Count of API requests
-- **Tokens Used** - Total tokens consumed
-- **Session Status** - Active/Inactive
-- **Model Selection** - Click to switch models
-- **Quick Actions** - Reset session, reset stats
 
 ## Available Models
 
@@ -76,48 +94,39 @@ claude --print
 ## How It Works
 
 ```
-Claude Code <-> Bridge (Web UI) <-> OpenCode Server <-> Any LLM
+Claude Code → Bridge → OpenCode → Any LLM
 ```
 
-The bridge:
-1. Accepts requests meant for Anthropic API
-2. Forwards them to your local OpenCode server
-3. Returns OpenCode's response in Anthropic format
-4. Tracks usage in the dashboard
+The bridge makes Claude Code think it's talking to Anthropic, but requests go to OpenCode instead!
 
-## API Endpoints
+## Troubleshooting
 
-- `GET /` - Web Dashboard
-- `GET /api/status` - Current status
-- `GET /api/models` - List available models
-- `POST /api/model` - Switch model
-- `POST /api/reset-session` - Reset session
-- `POST /api/reset-stats` - Reset statistics
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OPENCODE_SERVER_URL` | http://127.0.0.1:4096 | OpenCode server |
-| `OPENCODE_SERVER_PASSWORD` | (none) | Server password |
-| `PROXY_PORT` | 8080 | Proxy port |
-
-## Example
-
+**OpenCode not found?**
 ```bash
-# Test directly
-curl -X POST http://localhost:8100/v1/messages \
-  -H "Content-Type: application/json" \
-  -d '{"model":"test","messages":[{"role":"user","content":"Hi"}],"max_tokens":10}'
+npm install -g opencode-ai
 ```
 
-## Current Status
+**Port already in use?**
+```bash
+opencode-bridge stop
+opencode-bridge start
+```
 
-- ✅ Working with Claude Code CLI
-- ✅ Web Dashboard functional
-- ✅ Model switching works
-- ✅ Usage tracking works
-- ✅ Session management works
+**Reset everything:**
+```bash
+opencode-bridge remove
+npx opencode-claude-bridge install
+```
+
+## Test Results
+
+```
+✅ Claude Code: Working
+✅ Web Dashboard: Working  
+✅ Model Switching: Working
+✅ Usage Tracking: Working
+✅ Auto-configuration: Working
+```
 
 ## Tech Stack
 

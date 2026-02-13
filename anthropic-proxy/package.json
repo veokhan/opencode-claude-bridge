@@ -1,12 +1,16 @@
 {
-  "name": "opencode-anthropic-proxy",
+  "name": "opencode-claude-bridge",
   "version": "1.0.0",
-  "description": "Proxy with Web UI for OpenCode",
+  "description": "Use OpenCode AI models in Claude Code - with Web Dashboard",
   "type": "module",
   "main": "dist/proxy.js",
+  "bin": {
+    "opencode-bridge": "./dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/proxy.js",
+    "cli": "node dist/cli.js",
     "dev": "tsx src/proxy.ts"
   },
   "dependencies": {
@@ -18,5 +22,8 @@
     "@types/node": "^20.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
-  }
+  },
+  "keywords": ["opencode", "claude-code", "bridge", "ai", "cli"],
+  "author": "",
+  "license": "MIT"
 }
