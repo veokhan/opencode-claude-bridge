@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const PROXY_PORT = 8200;
+const PROXY_PORT = 8300;
 const OPENCODE_PORT = 4096;
 
 const isWindows = process.platform === 'win32';

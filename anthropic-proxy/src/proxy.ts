@@ -1,14 +1,13 @@
 import express from "express";
-import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { dirname } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const OPENCODE_SERVER_URL = process.env.OPENCODE_SERVER_URL || "http://127.0.0.1:4096";
 const OPENCODE_PASSWORD = process.env.OPENCODE_SERVER_PASSWORD || "";
-const PROXY_PORT = parseInt(process.env.PROXY_PORT || "8100");
+const PROXY_PORT = parseInt(process.env.PROXY_PORT || "8200");
 
 let currentSessionId: string | null = null;
 let totalTokensUsed = 0;
@@ -53,22 +52,18 @@ async function fetchModelsFromOpenCode() {
         }
       }
       
-      // Sort by provider name, then by model name
       availableModels.sort((a, b) => {
-        if (a.provider !== b.provider) {
-          return a.provider.localeCompare(b.provider);
-        }
+        if (a.provider !== b.provider) return a.provider.localeCompare(b.provider);
         return a.name.localeCompare(b.name);
       });
       
       console.error(`Loaded ${availableModels.length} models from ${Object.keys(providers).length} providers`);
     }
   } catch (e) {
-    console.error("Failed to fetch models from OpenCode:", e);
+    console.error("Failed to fetch models:", e);
   }
 }
 
-// Initial fetch
 fetchModelsFromOpenCode();
 
 async function createSession(workspace: string): Promise<string> {
@@ -78,16 +73,8 @@ async function createSession(workspace: string): Promise<string> {
       "Content-Type": "application/json",
       ...(OPENCODE_PASSWORD ? { "Authorization": `Basic ${Buffer.from(`opencode:${OPENCODE_PASSWORD}`).toString("base64")}` } : {})
     },
-    body: JSON.stringify({
-      workspace,
-      mode: "agent"
-    })
+    body: JSON.stringify({ workspace, mode: "agent" })
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to create session: ${response.statusText}`);
-  }
-
   const data = await response.json();
   return data.id;
 }
@@ -114,9 +101,7 @@ async function sendMessage(sessionId: string, messages: any[]): Promise<{ text: 
     }
   }
   
-  if (!lastUserMessage) {
-    return { text: "OK", tokens: 0 };
-  }
+  if (!lastUserMessage) return { text: "OK", tokens: 0 };
   
   const combinedContent = extractTextFromContent(lastUserMessage.content);
 
@@ -126,14 +111,8 @@ async function sendMessage(sessionId: string, messages: any[]): Promise<{ text: 
       "Content-Type": "application/json",
       ...(OPENCODE_PASSWORD ? { "Authorization": `Basic ${Buffer.from(`opencode:${OPENCODE_PASSWORD}`).toString("base64")}` } : {})
     },
-    body: JSON.stringify({
-      parts: [{ type: "text", text: combinedContent }]
-    })
+    body: JSON.stringify({ parts: [{ type: "text", text: combinedContent }] })
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to send message: ${response.statusText}`);
-  }
 
   const data = await response.json();
   
@@ -142,40 +121,28 @@ async function sendMessage(sessionId: string, messages: any[]): Promise<{ text: 
   
   if (data.parts && Array.isArray(data.parts)) {
     for (const part of data.parts) {
-      if (part.type === "text") {
-        fullResponse += part.text;
-      }
+      if (part.type === "text") fullResponse += part.text;
     }
   }
   
-  if (data.info?.tokens) {
-    tokens = data.info.tokens.total || 0;
-  }
+  if (data.info?.tokens) tokens = data.info.tokens.total || 0;
   
   return { text: fullResponse, tokens };
 }
 
 const app = express();
-
 app.use(express.json());
 
-// CORS for web UI
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
+  if (req.method === "OPTIONS") return res.sendStatus(200);
   next();
 });
 
-// Serve static web UI
-app.get("/", (req, res) => {
-  res.send(generateHTML());
-});
+app.get("/", (req, res) => res.send(generateHTML()));
 
-// API endpoints for web UI
 app.get("/api/status", (req, res) => {
   res.json({
     proxyPort: PROXY_PORT,
@@ -188,15 +155,11 @@ app.get("/api/status", (req, res) => {
 });
 
 app.get("/api/models", (req, res) => {
-  // Group models by provider
   const grouped: Record<string, Model[]> = {};
   for (const model of availableModels) {
-    if (!grouped[model.provider]) {
-      grouped[model.provider] = [];
-    }
+    if (!grouped[model.provider]) grouped[model.provider] = [];
     grouped[model.provider].push(model);
   }
-  
   res.json({ 
     models: availableModels,
     grouped,
@@ -232,45 +195,23 @@ app.post("/api/reset-session", async (req, res) => {
   res.json({ success: true, sessionId: currentSessionId });
 });
 
-// Claude Code checks these endpoints for authentication
-app.get("/v1/authenticate", (req, res) => {
-  res.json({ type: "authentication", authenticated: true });
-});
+app.get("/v1/authenticate", (req, res) => res.json({ type: "authentication", authenticated: true }));
+app.get("/v1/whoami", (req, res) => res.json({ type: "user", id: "opencode-user", email: "opencode@local" }));
 
-app.get("/v1/whoami", (req, res) => {
-  res.json({ 
-    type: "user",
-    id: "opencode-user",
-    email: "opencode@local"
-  });
-});
-
-// List available models
 app.get("/v1/models", (req, res) => {
-  res.json({
-    data: availableModels.map(m => ({
-      id: m.id,
-      type: "model",
-      name: m.name,
-      supports_cached_previews: true,
-      supports_system_instructions: true
-    }))
-  });
+  res.json({ data: availableModels.map(m => ({
+    id: m.id, type: "model", name: m.name,
+    supports_cached_previews: true, supports_system_instructions: true
+  }))});
 });
 
 app.get("/v1/models/list", (req, res) => {
-  res.json({
-    data: availableModels.map(m => ({
-      id: m.id,
-      type: "model",
-      name: m.name,
-      supports_cached_previews: true,
-      supports_system_instructions: true
-    }))
-  });
+  res.json({ data: availableModels.map(m => ({
+    id: m.id, type: "model", name: m.name,
+    supports_cached_previews: true, supports_system_instructions: true
+  }))});
 });
 
-// Anthropic Messages API endpoint
 app.post("/v1/messages", async (req, res) => {
   try {
     if (req.body?.max_tokens === undefined && req.body?.messages) {
@@ -283,7 +224,7 @@ app.post("/v1/messages", async (req, res) => {
       return res.json({ tokens: totalTokens });
     }
 
-    const { messages, model, system, max_tokens } = req.body;
+    const { messages, model } = req.body;
 
     if (!currentSessionId) {
       currentSessionId = await createSession(process.cwd());
@@ -308,13 +249,10 @@ app.post("/v1/messages", async (req, res) => {
     });
   } catch (error) {
     console.error("Error:", error);
-    res.status(500).json({
-      error: { type: "api_error", message: error instanceof Error ? error.message : String(error) }
-    });
+    res.status(500).json({ error: { type: "api_error", message: error instanceof Error ? error.message : String(error) } });
   }
 });
 
-// Count tokens endpoint
 app.post("/v1/messages/count_tokens", (req, res) => {
   const { messages } = req.body;
   let totalTokens = 0;
@@ -333,182 +271,218 @@ function generateHTML(): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OpenCode Bridge</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    .gradient-bg { background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%); }
-    .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
-    .glass:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); }
-    .glow-blue { box-shadow: 0 0 40px rgba(59,130,246,0.15); }
-    .glow-purple { box-shadow: 0 0 40px rgba(139,92,246,0.15); }
-    .model-card { transition: all 0.2s ease; }
-    .model-card:hover { transform: translateY(-2px); }
-    .model-card.selected { border-color: #3b82f6; background: rgba(59,130,246,0.15); }
-    .provider-section { animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .pulse { animation: pulse 2s infinite; }
-    .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-    .scrollbar-thin::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
-    .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: #0a0a0f; color: #e4e4e7; min-height: 100vh; }
+    
+    .app-container { display: flex; height: 100vh; }
+    
+    /* Sidebar */
+    .sidebar { width: 280px; background: #121218; border-right: 1px solid #27272a; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 20px; border-bottom: 1px solid #27272a; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; }
+    .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+    
+    /* Search */
+    .search-box { padding: 16px 20px; }
+    .search-input { width: 100%; padding: 10px 12px; background: #1a1a20; border: 1px solid #27272a; border-radius: 8px; color: #e4e4e7; font-size: 13px; outline: none; transition: border-color 0.2s; }
+    .search-input:focus { border-color: #6366f1; }
+    .search-input::placeholder { color: #71717a; }
+    
+    /* Provider List */
+    .provider-list { flex: 1; overflow-y: auto; padding: 8px; }
+    .provider-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 13px; transition: background 0.15s; }
+    .provider-item:hover { background: #1f1f26; }
+    .provider-item.active { background: #6366f1/15; color: #a5b4fc; }
+    .provider-name { display: flex; align-items: center; gap: 8px; }
+    .provider-count { font-size: 11px; color: #71717a; background: #27272a; padding: 2px 6px; border-radius: 4px; }
+    
+    /* Main Content */
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    
+    /* Header */
+    .main-header { padding: 16px 24px; border-bottom: 1px solid #27272a; display: flex; align-items: center; justify-content: space-between; background: #121218; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .current-model-badge { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: #6366f1/15; border: 1px solid #6366f1/30; border-radius: 8px; font-size: 13px; }
+    .status-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; }
+    .status-dot.inactive { background: #ef4444; }
+    
+    /* Model List */
+    .model-list-container { flex: 1; overflow-y: auto; padding: 16px 24px; }
+    .model-list-header { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #71717a; margin-bottom: 12px; padding: 0 8px; }
+    .model-item { padding: 12px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.15s; border: 1px solid transparent; margin-bottom: 4px; }
+    .model-item:hover { background: #1f1f26; }
+    .model-item.selected { background: #6366f1/15; border-color: #6366f1/40; }
+    .model-info { display: flex; flex-direction: column; gap: 2px; }
+    .model-name { font-size: 14px; font-weight: 500; }
+    .model-id { font-size: 11px; color: #71717a; font-family: 'JetBrains Mono', monospace; }
+    .model-cost { font-size: 11px; color: #a1a1aa; text-align: right; }
+    .model-cost span { display: block; }
+    
+    /* Footer Stats */
+    .footer { padding: 12px 24px; border-top: 1px solid #27272a; display: flex; gap: 24px; background: #121218; }
+    .stat-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #a1a1aa; }
+    .stat-value { color: #e4e4e7; font-weight: 500; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+    
+    /* Buttons */
+    .btn { padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: none; }
+    .btn-primary { background: #6366f1; color: white; }
+    .btn-primary:hover { background: #4f46e5; }
+    .btn-secondary { background: #27272a; color: #a1a1aa; }
+    .btn-secondary:hover { background: #3f3f46; color: #e4e4e7; }
   </style>
 </head>
-<body class="gradient-bg min-h-screen text-white">
-  <div class="container mx-auto px-4 py-8 max-w-7xl">
-    <!-- Header -->
-    <div class="text-center mb-10">
-      <div class="inline-flex items-center gap-3 mb-4">
-        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-2xl font-bold">
-          ⚡
-        </div>
-        <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-          OpenCode Bridge
-        </h1>
-      </div>
-      <p class="text-gray-400 text-lg">Use OpenCode models directly in Claude Code</p>
-    </div>
-    
-    <!-- Status Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div class="glass rounded-2xl p-5 glow-blue">
-        <div class="text-gray-400 text-xs uppercase tracking-wider mb-2">Current Model</div>
-        <div id="currentModel" class="text-lg font-semibold text-blue-400 truncate">-</div>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <div class="text-gray-400 text-xs uppercase tracking-wider mb-2">Requests</div>
-        <div id="totalRequests" class="text-2xl font-bold text-green-400">0</div>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <div class="text-gray-400 text-xs uppercase tracking-wider mb-2">Tokens Used</div>
-        <div id="totalTokens" class="text-2xl font-bold text-purple-400">0</div>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <div class="text-gray-400 text-xs uppercase tracking-wider mb-2">Session</div>
-        <div id="sessionStatus" class="text-lg font-semibold text-yellow-400">-</div>
-      </div>
-    </div>
-    
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Models Panel -->
-      <div class="lg:col-span-2">
-        <div class="glass rounded-2xl p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl font-semibold flex items-center gap-2">
-              <span class="w-1 h-6 bg-blue-500 rounded"></span>
-              Available Models
-            </h2>
-            <button onclick="refreshModels()" class="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg text-sm transition flex items-center gap-2">
-              <span>↻</span> Refresh
-            </button>
-          </div>
-          <div id="modelCount" class="text-sm text-gray-500 mb-4">Loading models...</div>
-          <div id="modelList" class="space-y-6 max-h-[600px] overflow-y-auto scrollbar-thin pr-2">
-            <!-- Models will be loaded here -->
-          </div>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <div class="logo-icon">⚡</div>
+          <span>OpenCode Bridge</span>
         </div>
       </div>
       
-      <!-- Sidebar -->
-      <div class="space-y-6">
-        <!-- Quick Actions -->
-        <div class="glass rounded-2xl p-6">
-          <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-            <span class="w-1 h-6 bg-green-500 rounded"></span>
-            Quick Actions
-          </h2>
-          <div class="space-y-3">
-            <button onclick="resetSession()" class="w-full px-4 py-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-xl transition flex items-center justify-center gap-2">
-              <span>🔄</span> Reset Session
-            </button>
-            <button onclick="resetStats()" class="w-full px-4 py-3 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 rounded-xl transition flex items-center justify-center gap-2">
-              <span>📊</span> Reset Statistics
-            </button>
-          </div>
-        </div>
-        
-        <!-- Setup Instructions -->
-        <div class="glass rounded-2xl p-6">
-          <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-            <span class="w-1 h-6 bg-yellow-500 rounded"></span>
-            Setup
-          </h2>
-          <div class="space-y-3 text-sm text-gray-300">
-            <p><strong class="text-white">1.</strong> Claude Code is already configured!</p>
-            <p><strong class="text-white">2.</strong> Just run:</p>
-            <code class="block bg-black/30 p-3 rounded-lg text-green-400 text-xs">claude --print</code>
-            <p><strong class="text-white">Dashboard:</strong> <span class="text-blue-400">http://localhost:${PROXY_PORT}</span></p>
-          </div>
-        </div>
+      <div class="search-box">
+        <input type="text" class="search-input" placeholder="Search models..." id="searchInput" oninput="filterModels()">
+      </div>
+      
+      <div class="provider-list" id="providerList">
+        <!-- Providers loaded here -->
       </div>
     </div>
     
-    <!-- Footer -->
-    <div class="text-center mt-10 text-gray-500 text-sm">
-      <p>OpenCode Bridge • Powered by OpenCode API</p>
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="main-header">
+        <div class="header-left">
+          <div class="current-model-badge">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="currentModelName">Loading...</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="resetSession()">↻ Session</button>
+          <button class="btn btn-secondary" onclick="resetStats()">📊 Reset</button>
+        </div>
+      </div>
+      
+      <div class="model-list-container">
+        <div class="model-list-header" id="modelListHeader">All Models</div>
+        <div id="modelList">
+          <!-- Models loaded here -->
+        </div>
+      </div>
+      
+      <div class="footer">
+        <div class="stat-item">
+          <span>Requests:</span>
+          <span class="stat-value" id="totalRequests">0</span>
+        </div>
+        <div class="stat-item">
+          <span>Tokens:</span>
+          <span class="stat-value" id="totalTokens">0</span>
+        </div>
+        <div class="stat-item">
+          <span>Models:</span>
+          <span class="stat-value" id="totalModels">0</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
     const PROXY_PORT = ${PROXY_PORT};
-    let currentModelId = null;
-    let modelsData = [];
+    let allModels = [];
     let groupedModels = {};
+    let currentProvider = 'all';
+    let currentModelId = null;
     
     async function loadModels() {
-      try {
-        const res = await fetch('/api/models');
-        const data = await res.json();
-        
-        modelsData = data.models || [];
-        groupedModels = data.grouped || {};
-        
-        document.getElementById('modelCount').textContent = \`\${modelsData.length} models from \${Object.keys(groupedModels).length} providers\`;
-        
-        const container = document.getElementById('modelList');
-        container.innerHTML = '';
-        
-        // Render by provider
-        for (const [provider, models] of Object.entries(groupedModels)) {
-          const section = document.createElement('div');
-          section.className = 'provider-section';
-          
-          const providerHeader = document.createElement('div');
-          providerHeader.className = 'text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 mt-4 first:mt-0';
-          providerHeader.textContent = provider;
-          section.appendChild(providerHeader);
-          
-          const grid = document.createElement('div');
-          grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2';
-          
-          for (const model of models) {
-            const card = document.createElement('div');
-            card.className = 'model-card glass rounded-xl p-3 cursor-pointer border border-transparent';
-            card.dataset.modelId = model.id;
-            card.onclick = () => selectModel(model.id);
-            
-            const isSelected = model.id === currentModelId;
-            if (isSelected) {
-              card.classList.add('selected');
-            }
-            
-            const costInfo = model.cost ? \`(\${model.cost.input}/\${model.cost.output})\` : '';
-            
-            card.innerHTML = \`
-              <div class="font-medium text-white text-sm truncate">\${model.name}</div>
-              <div class="text-xs text-gray-500 truncate">\${model.id} \${costInfo}</div>
-            \`;
-            
-            grid.appendChild(card);
-          }
-          
-          section.appendChild(grid);
-          container.appendChild(section);
-        }
-      } catch (e) {
-        console.error('Failed to load models:', e);
-        document.getElementById('modelCount').textContent = 'Failed to load models';
+      const res = await fetch('/api/models');
+      const data = await res.json();
+      
+      allModels = data.models || [];
+      groupedModels = data.grouped || {};
+      
+      renderProviders();
+      renderModels(allModels);
+      updateStats();
+    }
+    
+    function renderProviders() {
+      const container = document.getElementById('providerList');
+      const providers = Object.entries(groupedModels);
+      
+      let html = \`<div class="provider-item \${currentProvider === 'all' ? 'active' : ''}" onclick="selectProvider('all')">
+        <span class="provider-name">🏠 All Models</span>
+        <span class="provider-count">\${allModels.length}</span>
+      </div>\`;
+      
+      for (const [provider, models] of providers) {
+        html += \`<div class="provider-item \${currentProvider === provider ? 'active' : ''}" onclick="selectProvider('\${provider}')">
+          <span class="provider-name">📦 \${provider}</span>
+          <span class="provider-count">\${models.length}</span>
+        </div>\`;
       }
+      
+      container.innerHTML = html;
+    }
+    
+    function selectProvider(provider) {
+      currentProvider = provider;
+      renderProviders();
+      
+      const models = provider === 'all' ? allModels : groupedModels[provider] || [];
+      document.getElementById('modelListHeader').textContent = provider === 'all' ? 'All Models' : provider;
+      renderModels(models);
+    }
+    
+    function renderModels(models) {
+      const container = document.getElementById('modelList');
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      
+      let filtered = models;
+      if (searchTerm) {
+        filtered = models.filter(m => 
+          m.name.toLowerCase().includes(searchTerm) || 
+          m.id.toLowerCase().includes(searchTerm) ||
+          m.provider.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      if (filtered.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #71717a; padding: 40px;">No models found</div>';
+        return;
+      }
+      
+      let html = '';
+      for (const model of filtered) {
+        const isSelected = model.id === currentModelId;
+        const costInfo = model.cost ? \`<span>$\${model.cost.input}/M in</span><span>$\${model.cost.output}/M out</span>\` : '';
+        
+        html += \`<div class="model-item \${isSelected ? 'selected' : ''}" onclick="selectModel('\${model.id}')">
+          <div class="model-info">
+            <div class="model-name">\${model.name}</div>
+            <div class="model-id">\${model.id}</div>
+          </div>
+          <div class="model-cost">\${costInfo}</div>
+        </div>\`;
+      }
+      
+      container.innerHTML = html;
+    }
+    
+    function filterModels() {
+      const models = currentProvider === 'all' ? allModels : groupedModels[currentProvider] || [];
+      renderModels(models);
     }
     
     async function selectModel(modelId) {
@@ -521,7 +495,8 @@ function generateHTML(): string {
       if (data.success) {
         currentModelId = modelId;
         loadStatus();
-        loadModels();
+        const models = currentProvider === 'all' ? allModels : groupedModels[currentProvider] || [];
+        renderModels(models);
       }
     }
     
@@ -529,14 +504,19 @@ function generateHTML(): string {
       const res = await fetch('/api/status');
       const data = await res.json();
       
-      document.getElementById('currentModel').textContent = data.currentModel || 'Default';
+      const model = allModels.find(m => m.id === data.currentModel);
+      document.getElementById('currentModelName').textContent = model ? model.name : data.currentModel;
+      
+      const statusDot = document.getElementById('statusDot');
+      if (data.sessionId === 'active') {
+        statusDot.classList.remove('inactive');
+      } else {
+        statusDot.classList.add('inactive');
+      }
+      
       document.getElementById('totalRequests').textContent = data.totalRequests.toLocaleString();
       document.getElementById('totalTokens').textContent = data.totalTokensUsed.toLocaleString();
-      
-      const statusEl = document.getElementById('sessionStatus');
-      const isActive = data.sessionId === 'active';
-      statusEl.textContent = isActive ? 'Active' : 'Inactive';
-      statusEl.className = 'text-lg font-semibold ' + (isActive ? 'text-green-400' : 'text-red-400');
+      document.getElementById('totalModels').textContent = allModels.length.toLocaleString();
       
       currentModelId = data.currentModel;
     }
@@ -551,15 +531,10 @@ function generateHTML(): string {
       loadStatus();
     }
     
-    async function refreshModels() {
-      await fetch('/api/refresh-models', { method: 'POST' });
-      loadModels();
-    }
-    
     // Initialize
     loadModels();
     loadStatus();
-    setInterval(() => { loadStatus(); }, 5000);
+    setInterval(loadStatus, 3000);
   </script>
 </body>
 </html>`;
