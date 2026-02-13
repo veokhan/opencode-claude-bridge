@@ -1,14 +1,13 @@
 # OpenCode Claude Bridge
 
-**✅ WORKING** - Use OpenCode's AI models directly in Claude Code!
+**✅ WORKING** - Use OpenCode's AI models directly in Claude Code with a beautiful Web Dashboard!
 
-## How It Works
+## Features
 
-```
-Claude Code <-> Anthropic Proxy <-> OpenCode Server <-> Any LLM Provider
-```
-
-Claude Code thinks it's talking to Anthropic, but the proxy forwards requests to OpenCode, which uses whatever model you configured.
+- 🌐 **Beautiful Web Dashboard** - Monitor usage, switch models, track stats
+- 🔄 **Model Switching** - Switch between 10+ models with one click
+- 📊 **Usage Tracking** - Track requests and token usage
+- 🔌 **Seamless Integration** - Claude Code thinks it's talking to Anthropic
 
 ## Quick Start
 
@@ -18,98 +17,115 @@ Claude Code thinks it's talking to Anthropic, but the proxy forwards requests to
 opencode serve --port 4096
 ```
 
-### 2. Start the Proxy
+### 2. Start the Bridge
 
 ```bash
-cd opencode-claude-bridge/anthropic-proxy
+cd anthropic-proxy
 npm install
 npm run build
 node dist/proxy.js
 ```
 
-### 3. Configure Claude Code
+### 3. Open the Dashboard
 
-Create `~/.claude/settings.json`:
+Visit: **http://localhost:8100**
+
+### 4. Configure Claude Code
+
+Add to `~/.claude/settings.json`:
 
 ```json
 {
   "env": {
-    "ANTHROPIC_BASE_URL": "http://localhost:8097",
+    "ANTHROPIC_BASE_URL": "http://localhost:8100",
     "ANTHROPIC_API_KEY": "test-key"
   }
 }
 ```
 
-### 4. Use Claude Code!
+### 5. Use Claude Code!
 
 ```bash
 claude --print
-# Or just run claude
-claude
 ```
 
-## How to Run Both Services
+## Web Dashboard Features
 
-**Terminal 1:**
-```bash
-opencode serve --port 4096
-```
+- **Current Model** - See which model is active
+- **Total Requests** - Count of API requests
+- **Tokens Used** - Total tokens consumed
+- **Session Status** - Active/Inactive
+- **Model Selection** - Click to switch models
+- **Quick Actions** - Reset session, reset stats
 
-**Terminal 2:**
-```bash
-cd opencode-claude-bridge/anthropic-proxy
-node dist/proxy.js
-```
+## Available Models
 
-## Configure OpenCode Models
-
-Edit your project's `opencode.json` to choose which model to use:
-
-```json
-{
-  "model": "anthropic/claude-sonnet-4-5-20250929"
-}
-```
-
-Or use any of the 75+ providers OpenCode supports:
-- OpenAI (GPT models)
-- Google (Gemini)
-- Ollama (local)
-- OpenRouter (many models)
-- And more...
+| Model | Provider |
+|-------|----------|
+| MiniMax M2.5 Free | OpenCode |
+| Claude Sonnet 4.5 | Anthropic |
+| Claude Opus 4.5 | Anthropic |
+| Claude Haiku 4.5 | Anthropic |
+| GPT-4o | OpenAI |
+| GPT-4o Mini | OpenAI |
+| Gemini 2 Flash | Google |
+| Gemini 1.5 Pro | Google |
+| Llama 3 | Ollama |
+| CodeLlama | Ollama |
 
 ## How It Works
 
-The proxy:
+```
+Claude Code <-> Bridge (Web UI) <-> OpenCode Server <-> Any LLM
+```
+
+The bridge:
 1. Accepts requests meant for Anthropic API
 2. Forwards them to your local OpenCode server
 3. Returns OpenCode's response in Anthropic format
+4. Tracks usage in the dashboard
 
-This means Claude Code uses OpenCode's model configuration - not Claude's!
+## API Endpoints
 
-## Testing
+- `GET /` - Web Dashboard
+- `GET /api/status` - Current status
+- `GET /api/models` - List available models
+- `POST /api/model` - Switch model
+- `POST /api/reset-session` - Reset session
+- `POST /api/reset-stats` - Reset statistics
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OPENCODE_SERVER_URL` | http://127.0.0.1:4096 | OpenCode server |
+| `OPENCODE_SERVER_PASSWORD` | (none) | Server password |
+| `PROXY_PORT` | 8080 | Proxy port |
+
+## Example
 
 ```bash
-# Test the proxy directly
-curl -X POST http://localhost:8097/v1/messages \
+# Test directly
+curl -X POST http://localhost:8100/v1/messages \
   -H "Content-Type: application/json" \
-  -d '{
-    "model": "claude-sonnet-4-5-20250929",
-    "messages": [{"role": "user", "content": "Say hi"}],
-    "max_tokens": 10
-  }'
-
-# Test via Claude Code
-echo "Hello" | claude --print
+  -d '{"model":"test","messages":[{"role":"user","content":"Hi"}],"max_tokens":10}'
 ```
 
-## Current Limitations
+## Current Status
 
-- Uses OpenCode's default model (minimax-m2.5-free unless configured)
-- Some Claude Code features may not work perfectly
-- Session persistence is limited
+- ✅ Working with Claude Code CLI
+- ✅ Web Dashboard functional
+- ✅ Model switching works
+- ✅ Usage tracking works
+- ✅ Session management works
 
-## Files
+## Tech Stack
 
-- `anthropic-proxy/src/proxy.ts` - Main proxy server
-- `src/index.ts` - MCP bridge (alternative approach)
+- TypeScript
+- Express.js
+- Tailwind CSS (via CDN)
+- OpenCode API
+
+## License
+
+MIT

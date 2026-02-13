@@ -1,7 +1,7 @@
 {
   "name": "opencode-anthropic-proxy",
   "version": "1.0.0",
-  "description": "Proxy that makes OpenCode look like Anthropic API to Claude Code",
+  "description": "Proxy with Web UI for OpenCode",
   "type": "module",
   "main": "dist/proxy.js",
   "scripts": {
