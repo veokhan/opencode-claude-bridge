@@ -4,12 +4,16 @@
   "description": "OpenCode Bridge - Use OpenCode AI models in Claude Code",
   "type": "module",
   "main": "dist/proxy.js",
+  "bin": {
+    "ocb": "dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/proxy.js",
     "stop": "taskkill /F /IM node.exe 2>nul || true",
-    "cli": "npx tsx src/cli.ts",
-    "dev": "tsx src/proxy.ts"
+    "cli": "node dist/cli.js",
+    "dev": "tsx src/proxy.ts",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "express": "^4.18.0",
@@ -23,5 +27,12 @@
   },
   "keywords": ["opencode", "claude-code", "bridge", "ai", "cli", "ocb"],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src",
+    "package.json",
+    "tsconfig.json",
+    "README.md"
+  ]
 }
