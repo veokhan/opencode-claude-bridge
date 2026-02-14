@@ -5,12 +5,12 @@
   "type": "module",
   "main": "dist/proxy.js",
   "bin": {
-    "ocb": "tsx src/cli.ts"
+    "ocb": "./cli.js"
   },
   "scripts": {
     "build": "tsc",
     "start": "node dist/proxy.js",
-    "cli": "tsx src/cli.ts",
+    "cli": "node cli.js",
     "dev": "tsx src/proxy.ts"
   },
   "dependencies": {

@@ -7,7 +7,7 @@ const __dirname = dirname(__filename);
 
 const OPENCODE_SERVER_URL = process.env.OPENCODE_SERVER_URL || "http://127.0.0.1:4096";
 const OPENCODE_PASSWORD = process.env.OPENCODE_SERVER_PASSWORD || "";
-const PROXY_PORT = parseInt(process.env.PROXY_PORT || "8200");
+const PROXY_PORT = parseInt(process.env.PROXY_PORT || "8300");
 
 let currentSessionId: string | null = null;
 let totalTokensUsed = 0;
