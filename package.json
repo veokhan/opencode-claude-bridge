@@ -12,8 +12,7 @@
     "start": "node dist/proxy.js",
     "stop": "taskkill /F /IM node.exe 2>nul || true",
     "cli": "node dist/cli.js",
-    "dev": "tsx src/proxy.ts",
-    "prepublishOnly": "npm run build"
+    "dev": "tsx src/proxy.ts"
   },
   "dependencies": {
     "express": "^4.18.0",
