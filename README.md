@@ -39,7 +39,7 @@ npx ocb start
 
 ## After Installation
 
-1. **Dashboard:** http://localhost:8400
+1. **Dashboard:** http://localhost:8300
    - Switch models with one click
    - View usage stats
    - Reset session/stats
