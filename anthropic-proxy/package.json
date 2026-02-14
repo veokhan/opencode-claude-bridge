@@ -1,11 +1,11 @@
 {
-  "name": "opencode-claude-bridge",
+  "name": "ocb",
   "version": "1.0.0",
-  "description": "Use OpenCode AI models in Claude Code - with Web Dashboard",
+  "description": "OpenCode Bridge - Use OpenCode AI models in Claude Code",
   "type": "module",
   "main": "dist/proxy.js",
   "bin": {
-    "opencode-bridge": "./dist/cli.js"
+    "ocb": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -23,7 +23,7 @@
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   },
-  "keywords": ["opencode", "claude-code", "bridge", "ai", "cli"],
+  "keywords": ["opencode", "claude-code", "bridge", "ai", "cli", "ocb"],
   "author": "",
   "license": "MIT"
 }

@@ -1,4 +1,4 @@
-# OpenCode Claude Bridge
+# OCB - OpenCode Bridge
 
 **✅ Use OpenCode AI models directly in Claude Code with one command!**
 
@@ -6,10 +6,10 @@
 
 ```bash
 # Install globally
-npm install -g opencode-claude-bridge
+npm install -g ocb
 
 # OR use npx (no install needed)
-npx opencode-claude-bridge install
+npx ocb install
 ```
 
 That's it! The `install` command will:
@@ -21,25 +21,25 @@ That's it! The `install` command will:
 
 ```bash
 # Start everything (after install)
-opencode-bridge start
+ocb start
 
 # Or use npx
-npx opencode-bridge start
+npx ocb start
 ```
 
 ### Available Commands
 
 | Command | Description |
 |---------|-------------|
-| `opencode-bridge install` | Setup + Start (all in one) |
-| `opencode-bridge start` | Start all services |
-| `opencode-bridge stop` | Stop all services |
-| `opencode-bridge setup` | Configure Claude Code only |
-| `opencode-bridge remove` | Remove configuration |
+| `ocb install` | Setup + Start (all in one) |
+| `ocb start` | Start all services |
+| `ocb stop` | Stop all services |
+| `ocb setup` | Configure Claude Code only |
+| `ocb remove` | Remove configuration |
 
 ## After Installation
 
-1. **Dashboard:** http://localhost:8100
+1. **Dashboard:** http://localhost:8400
    - Switch models with one click
    - View usage stats
    - Reset session/stats
@@ -51,8 +51,8 @@ npx opencode-bridge start
 
 ## Features
 
-- 🌐 **Beautiful Web Dashboard** - Monitor usage, switch models
-- 🔄 **One-Click Model Switching** - 10+ models available
+- 🌐 **Beautiful Web Dashboard** - OpenCode-style UI
+- 🔄 **2540+ Models** from 89 providers
 - 📊 **Usage Tracking** - Requests and tokens
 - ⚡ **Auto-Configuration** - No manual editing needed
 
@@ -62,8 +62,8 @@ If you prefer to install from source:
 
 ```bash
 # Clone
-git clone https://github.com/veokhan/opencode-claude-bridge.git
-cd opencode-claude-bridge/anthropic-proxy
+git clone https://github.com/veokhan/ocb.git
+cd ocb/anthropic-proxy
 
 # Install & Build
 npm install
@@ -76,28 +76,13 @@ node dist/cli.js setup
 node dist/cli.js start
 ```
 
-## Available Models
-
-| Model | Provider |
-|-------|----------|
-| MiniMax M2.5 Free | OpenCode |
-| Claude Sonnet 4.5 | Anthropic |
-| Claude Opus 4.5 | Anthropic |
-| Claude Haiku 4.5 | Anthropic |
-| GPT-4o | OpenAI |
-| GPT-4o Mini | OpenAI |
-| Gemini 2 Flash | Google |
-| Gemini 1.5 Pro | Google |
-| Llama 3 | Ollama |
-| CodeLlama | Ollama |
-
 ## How It Works
 
 ```
-Claude Code → Bridge → OpenCode → Any LLM
+Claude Code → OCB → OpenCode → Any LLM
 ```
 
-The bridge makes Claude Code think it's talking to Anthropic, but requests go to OpenCode instead!
+OCB makes Claude Code think it's talking to Anthropic, but requests go to OpenCode instead!
 
 ## Troubleshooting
 
@@ -108,14 +93,14 @@ npm install -g opencode-ai
 
 **Port already in use?**
 ```bash
-opencode-bridge stop
-opencode-bridge start
+ocb stop
+ocb start
 ```
 
 **Reset everything:**
 ```bash
-opencode-bridge remove
-npx opencode-claude-bridge install
+ocb remove
+npx ocb install
 ```
 
 ## Test Results

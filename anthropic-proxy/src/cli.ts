@@ -261,14 +261,14 @@ switch (command) {
     setup().then(() => start());
     break;
   default:
-    log('\n📖 OpenCode Bridge CLI', colors.blue);
+    log('\n📖 OCB - OpenCode Bridge CLI', colors.blue);
     log('\nUsage:', colors.cyan);
-    log('  opencode-bridge setup    - Configure Claude Code', colors.reset);
-    log('  opencode-bridge start   - Start all services', colors.reset);
-    log('  opencode-bridge install - Setup + Start (all in one)', colors.reset);
-    log('  opencode-bridge stop    - Stop all services', colors.reset);
-    log('  opencode-bridge remove - Remove configuration', colors.reset);
+    log('  ocb setup    - Configure Claude Code', colors.reset);
+    log('  ocb start   - Start all services', colors.reset);
+    log('  ocb install  - Setup + Start (all in one)', colors.reset);
+    log('  ocb stop     - Stop all services', colors.reset);
+    log('  ocb remove   - Remove configuration', colors.reset);
     log('\nOr run with npx:', colors.yellow);
-    log('  npx opencode-bridge install\n', colors.yellow);
+    log('  npx ocb install\n', colors.yellow);
     process.exit(1);
 }
